@@ -266,6 +266,53 @@ function provider (registry, { Biome, version }) {
       return Object.assign(this._properties, this.computedStates)
     }
 
+    changeProperties(propertiesToChange) {
+      if (!usesBlockStates) {
+        // legacyPcBlocksByIdmeta
+        const newPropsMerged = Object.assign(
+          {},
+          this._properties,
+          // normalize values
+          Object.fromEntries(Object.entries(propertiesToChange).map(([key, value]) => typeof value === 'boolean' ? [key, `${value}`] : [key, value]))
+        )
+        // now match metadata
+        // todo cache, use match
+        const propsToString = (p) => Object.entries(p).map(([k, v]) => k + '=' + v).join(',')
+        const propsStringified = propsToString(newPropsMerged);
+        let lastFoundState;
+        const matched = Object.entries(legacyPcBlocksByIdmeta).find(([key, state]) => {
+          // check block id
+          if (+key.split(':')[0] === this.type) {
+            lastFoundState = state;
+          } else {
+            return false
+          }
+
+          return propsToString(state) === propsStringified
+        })
+        if (!matched) {
+          throw new Error('No matching block state found for ' + this.name + ' with properties ' + JSON.stringify(propertiesToChange) + ' last found state: ' + JSON.stringify(lastFoundState))
+        }
+        return +matched[0].split(':')[1]
+      } else {
+        throw new Error('Not implemented')
+      }
+
+      // const blockEnum = registry.blocksByStateId[this.stateId]
+      // if (blockEnum && blockEnum.states) {
+      //   let data = this.metadata
+      //   for (let i = blockEnum.states.length - 1; i >= 0; i--) {
+      //     const prop = blockEnum.states[i]
+      //     if (propertiesToChange[prop.name] !== undefined) {
+      //       data -= (data % prop.num_values)
+      //       data += getStateValue(blockEnum.states, prop.name, propertiesToChange[prop.name])
+      //     }
+      //   }
+      //   this.metadata = data
+      //   this.stateId = blockEnum.minStateId + data
+      // }
+    }
+
     canHarvest (heldItemType) {
       if (!this.harvestTools) { return true }; // for blocks harvestable by hand
       return heldItemType && this.harvestTools && this.harvestTools[heldItemType]
