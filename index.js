@@ -226,7 +226,7 @@ function provider (registry, { Biome, version }) {
             }
           }
         } else {
-          this._properties = legacyPcBlocksByIdmeta[this.type + ':' + this.metadata] || legacyPcBlocksByIdmeta[this.type + ':0']
+          this._properties = legacyPcBlocksByIdmeta[this.type + ':' + this.metadata] || legacyPcBlocksByIdmeta[this.type + ':0'] || {}
           if (!this._properties) { // If no props, try different metadata for type match only
             for (let i = 0; i < 15; i++) {
               this._properties = legacyPcBlocksByIdmeta[this.type + ':' + i]
@@ -316,7 +316,7 @@ function provider (registry, { Biome, version }) {
       return Object.assign(this._properties, this.computedStates)
     }
 
-    changeProperties(propertiesToChange) {
+    changeProperties (propertiesToChange) {
       if (!usesBlockStates) {
         // legacyPcBlocksByIdmeta
         const newPropsMerged = Object.assign(
@@ -328,12 +328,12 @@ function provider (registry, { Biome, version }) {
         // now match metadata
         // todo cache, use match
         const propsToString = (p) => Object.entries(p).map(([k, v]) => k + '=' + v).join(',')
-        const propsStringified = propsToString(newPropsMerged);
-        let lastFoundState;
+        const propsStringified = propsToString(newPropsMerged)
+        let lastFoundState
         const matched = Object.entries(legacyPcBlocksByIdmeta).find(([key, state]) => {
           // check block id
           if (+key.split(':')[0] === this.type) {
-            lastFoundState = state;
+            lastFoundState = state
           } else {
             return false
           }
