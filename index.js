@@ -74,6 +74,9 @@ function loader (registryOrVersion) {
   return provider(registry, { Biome: require('prismarine-biome')(version), version })
 }
 
+// not sure how to deal with this workaround at all :/
+const emptyShapeReplacer = globalThis.emptyShapeReplacer
+
 function provider (registry, { Biome, version }) {
   const blockMethods = require('./blockEntity')(registry)
   const usesBlockStates = (version.type === 'pc' && registry.supportFeature('blockStateId')) || (version.type === 'bedrock')
@@ -84,7 +87,8 @@ function provider (registry, { Biome, version }) {
       const block = registry.blocks[id]
       const shapesId = shapes.blocks[block.name]
       block.shapes = (shapesId instanceof Array) ? shapes.shapes[shapesId[0]] : shapes.shapes[shapesId]
-      block.interactionShapes = fullBoxInteractionShapes.includes(block.name) || fullBoxInteractionShapesTemp.includes(block.name) ? shapes.shapes[1] : undefined
+      block.interactionShapes = fullBoxInteractionShapes.includes(block.name) || fullBoxInteractionShapesTemp.includes(block.name) ? shapes.shapes[1] :
+        block.shapes?.length === 0 && !block.name.includes('air') ? emptyShapeReplacer : undefined
       if (block.states || version.type === 'bedrock') { // post 1.13
         if (shapesId instanceof Array) {
           block.stateShapes = []
