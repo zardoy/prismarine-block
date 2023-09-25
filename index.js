@@ -75,7 +75,7 @@ function loader (registryOrVersion) {
 }
 
 // not sure how to deal with this workaround at all :/
-const emptyShapeReplacer = globalThis.emptyShapeReplacer
+const emptyShapeReplacer = [[0.0, 0.0, 0.0, 1.0, 1.0, 1.0]]
 
 function provider (registry, { Biome, version }) {
   const blockMethods = require('./blockEntity')(registry)
@@ -87,8 +87,11 @@ function provider (registry, { Biome, version }) {
       const block = registry.blocks[id]
       const shapesId = shapes.blocks[block.name]
       block.shapes = (shapesId instanceof Array) ? shapes.shapes[shapesId[0]] : shapes.shapes[shapesId]
-      block.interactionShapes = fullBoxInteractionShapes.includes(block.name) || fullBoxInteractionShapesTemp.includes(block.name) ? shapes.shapes[1] :
-        block.shapes?.length === 0 && !block.name.includes('air') ? emptyShapeReplacer : undefined
+      // is non interactive bloc
+      const isNonInteractive = block.name.includes('air') || block.name.includes('water') || block.name.includes('lava') || block.name.includes('void')
+      block.interactionShapes = fullBoxInteractionShapes.includes(block.name) || fullBoxInteractionShapesTemp.includes(block.name)
+        ? shapes.shapes[1]
+        : block.shapes?.length === 0 && !isNonInteractive ? emptyShapeReplacer : undefined
       if (block.states || version.type === 'bedrock') { // post 1.13
         if (shapesId instanceof Array) {
           block.stateShapes = []
