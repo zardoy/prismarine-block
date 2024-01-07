@@ -1,3 +1,4 @@
+//@ts-check
 module.exports = loader
 module.exports.testedVersions = ['1.8.8', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.14.4', '1.15.2', '1.16.4', '1.17.1', '1.18.1', 'bedrock_1.17.10', 'bedrock_1.18.0', '1.20']
 
@@ -68,16 +69,46 @@ const legacyPcBlocksByIdmeta = Object.entries(mcData.legacy.pc.blocks).reduce((o
   return obj // array of { '255:0': { mode: 'save' }, }
 }, {})
 
+function parseProperties (properties) {
+  if (typeof properties === 'object') { return properties }
+
+  const json = {}
+  for (const prop of properties.split(',')) {
+    const [key, value] = prop.split('=')
+    json[key] = value
+  }
+  return json
+}
+
+function matchProperties (block, /* to match against */properties) {
+  if (!properties) { return true }
+
+  properties = parseProperties(properties)
+  const blockProps = block.getProperties()
+  if (properties.OR) {
+    return properties.OR.some((or) => matchProperties(block, or))
+  }
+  for (const prop in blockProps) {
+    if (properties[prop] === undefined) continue // unknown property, ignore
+    const parsed = typeof properties[prop] !== 'string' ? String(properties[prop]) : properties[prop]
+    if (!(parsed).split('|').some((value) => value === String(blockProps[prop]))) {
+      return false
+    }
+  }
+  return true
+}
+
 function loader (registryOrVersion) {
   const registry = typeof registryOrVersion === 'string' ? require('prismarine-registry')(registryOrVersion) : registryOrVersion
   const version = registry.version
-  return provider(registry, { Biome: require('prismarine-biome')(version), version })
+  return provider(registry, { Biome: require('prismarine-biome')(version.minecraftVersion), version })
 }
 
 // not sure how to deal with this workaround at all :/
 const emptyShapeReplacer = [[0.0, 0.0, 0.0, 1.0, 1.0, 1.0]]
 
 function provider (registry, { Biome, version }) {
+  // registry.version["<"](1.13)
   const blockMethods = require('./blockEntity')(registry)
   const usesBlockStates = (version.type === 'pc' && registry.supportFeature('blockStateId')) || (version.type === 'bedrock')
   const shapes = registry.blockCollisionShapes
@@ -161,6 +192,40 @@ function provider (registry, { Biome, version }) {
   }
 
   return class Block {
+    get interactionShapes() {
+      const getShape = () => {
+        const interactionShapes = globalThis.interactionShapes?.[this.name];
+        if (!interactionShapes) {
+          if (this.shapes?.length === 0) return emptyShapeReplacer[0].map((x) => x * 16) // todo
+          return []
+        }
+        if (!Array.isArray(interactionShapes)) {
+          if (interactionShapes.combine) {
+            const shapes = []
+            Object.entries(interactionShapes.combine).forEach(([key, value]) => {
+              if (matchProperties(this, key)) {
+                shapes.push(value)
+              }
+            })
+            return shapes
+          }
+          let shape
+          for (const [key, value] of Object.entries(interactionShapes)) {
+            if (matchProperties(this, key)) {
+              shape = value
+              break
+            }
+          }
+          return shape ?? []
+        }
+        return interactionShapes
+      }
+      const shape = getShape()
+      if (typeof shape[0] === 'number') return [shape.map(x => x / 16)]
+      return shape.map(x => x.map(y => y / 16)) ?? []
+    }
+    set interactionShapes(value) { }
+
     constructor (type, biomeId, metadata, stateId) {
       this.type = type
       this.metadata = metadata ?? 0
