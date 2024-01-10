@@ -2,53 +2,6 @@
 module.exports = loader
 module.exports.testedVersions = ['1.8.8', '1.9.4', '1.10.2', '1.11.2', '1.12.2', '1.13.2', '1.14.4', '1.15.2', '1.16.4', '1.17.1', '1.18.1', 'bedrock_1.17.10', 'bedrock_1.18.0', '1.20']
 
-const fullBoxInteractionShapes = [
-  'dead_bush',
-  'cave_vines_plant',
-  'grass',
-  'tall_seagrass',
-  'spruce_sapling',
-  'oak_sapling',
-  'dark_oak_sapling',
-  'birch_sapling',
-  'seagrass',
-  'nether_portal',
-  'tall_grass',
-  'lilac',
-]
-const fullBoxInteractionShapesTemp = [
-  'moving_piston',
-  'lime_wall_banner',
-  'gray_wall_banner',
-  'weeping_vines_plant',
-  'pumpkin_stem',
-  'red_wall_banner',
-  'crimson_wall_sign',
-  'magenta_wall_banner',
-  'melon_stem',
-  'gray_banner',
-  'spruce_sign',
-  'pink_wall_banner',
-  'purple_banner',
-  'bamboo_sapling',
-  'mangrove_sign',
-  'cyan_banner',
-  'blue_banner',
-  'green_wall_banner',
-  'yellow_banner',
-  'black_wall_banner',
-  'green_banner',
-  'oak_sign',
-  'jungle_sign',
-  'yellow_wall_banner',
-  'lime_banner',
-  'tube_coral',
-  'red_banner',
-  'magenta_banner',
-  'brown_wall_banner',
-  'white_wall_banner',
-]
-
 const nbt = require('prismarine-nbt')
 const mcData = require('minecraft-data')
 const legacyPcBlocksByName = Object.entries(mcData.legacy.pc.blocks).reduce((obj, [idmeta, name]) => {
@@ -118,11 +71,10 @@ function provider (registry, { Biome, version }) {
       const block = registry.blocks[id]
       const shapesId = shapes.blocks[block.name]
       block.shapes = (shapesId instanceof Array) ? shapes.shapes[shapesId[0]] : shapes.shapes[shapesId]
-      // is non interactive bloc
-      const isNonInteractive = block.name.includes('air') || block.name.includes('water') || block.name.includes('lava') || block.name.includes('void')
-      block.interactionShapes = fullBoxInteractionShapes.includes(block.name) || fullBoxInteractionShapesTemp.includes(block.name)
-        ? shapes.shapes[1]
-        : block.shapes?.length === 0 && !isNonInteractive ? emptyShapeReplacer : undefined
+      if (!block.shapes) {
+        console.error('No shape found for block ' + block.name)
+        block.shapes = [] // should not happen
+      }
       if (block.states || version.type === 'bedrock') { // post 1.13
         if (shapesId instanceof Array) {
           block.stateShapes = []
