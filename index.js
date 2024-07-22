@@ -478,7 +478,7 @@ function provider (registry, { Biome, version }) {
   }
 
   function parseValue (value, state) {
-    if (state.type === 'enum') {
+    if (state.type === 'enum' || state.values) {
       return state.values.indexOf(value)
     }
     if (state.type === 'bool') {
@@ -505,7 +505,7 @@ function provider (registry, { Biome, version }) {
   }
 
   function propValue (state, value) {
-    if (state.type === 'enum') return state.values[value]
+    if (state.type === 'enum' || state.values) return state.values[value]
     if (state.type === 'bool') return !value
     return value
   }
