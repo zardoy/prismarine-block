@@ -478,7 +478,7 @@ function provider (registry, { Biome, version }) {
   }
 
   function parseValue (value, state) {
-    if (state.type === 'enum' || state.values) {
+    if (state.type === 'enum') {
       return state.values.indexOf(value)
     }
     if (state.type === 'bool') {
